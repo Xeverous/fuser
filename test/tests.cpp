@@ -8,6 +8,7 @@
 #include <initializer_list>
 #include <limits>
 #include <string>
+#include <memory>
 #include <string_view>
 
 namespace ut = boost::unit_test;
@@ -90,6 +91,46 @@ bool operator!=(multi_type_struct const& lhs, multi_type_struct const& rhs)
 	return !(lhs == rhs);
 }
 
+struct smart_pointer_struct
+{
+	std::unique_ptr<int> i;
+	std::unique_ptr<sample_enum> e;
+};
+BOOST_FUSION_ADAPT_STRUCT(smart_pointer_struct, i, e)
+
+template <typename T>
+bool compare_unique_ptrs(std::unique_ptr<T> const& lhs, std::unique_ptr<T> const& rhs)
+{
+	/*
+	 * operator== in standard library compares stored pointers only
+	 * we want to compare stored values if available instead
+	 */
+	if (lhs == nullptr && rhs == nullptr)
+		return true;
+	if (lhs == nullptr && rhs != nullptr)
+		return false;
+	if (lhs != nullptr && rhs == nullptr)
+		return false;
+
+	return *lhs == *rhs;
+}
+
+bool operator==(smart_pointer_struct const& lhs, smart_pointer_struct const& rhs)
+{
+	return compare_unique_ptrs(lhs.i, rhs.i) && compare_unique_ptrs(lhs.e, rhs.e);
+}
+
+bool operator!=(smart_pointer_struct const& lhs, smart_pointer_struct const& rhs)
+{
+	return !(lhs == rhs);
+}
+
+template <typename T, typename... Args>
+std::unique_ptr<T> make_unique(Args&&... args)
+{
+	return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
+}
+
 namespace {
 
 template <typename T>
@@ -99,7 +140,7 @@ void bidirectional_test(nlohmann::json const& json, T const& val)
 	auto deserialized = fuser::deserialize<T>(json);
 
 	if (serialized != json) {
-		BOOST_FAIL("JSONs are different (expected vs actual):\n"
+		BOOST_ERROR("JSONs are different (expected vs actual):\n"
 			<< fuser::dump_json(json) << "\n\n" << fuser::dump_json(serialized));
 	}
 
@@ -245,6 +286,31 @@ BOOST_AUTO_TEST_SUITE(fuser_suite)
 				}
 			}
 		};
+
+		bidirectional_test(json, values);
+	}
+
+	BOOST_AUTO_TEST_CASE(smart_pointer_struct_array)
+	{
+		nlohmann::json const json = {
+			{
+				{"i", nullptr}, {"e", "foo"}
+			},
+			{
+				{"i", 1}, {"e", "bar"}
+			},
+			{
+				{"i", -1}, {"e", nullptr}
+			}
+		};
+
+		// can not construct vector from init lists because
+		// they copy and unique_ptr is not copyable
+		// use push_back/emplace_back instead
+		std::vector<smart_pointer_struct> values;
+		values.push_back({nullptr, make_unique<sample_enum>(sample_enum::foo)});
+		values.push_back({make_unique<int>(1), make_unique<sample_enum>(sample_enum::bar)});
+		values.push_back({make_unique<int>(-1), nullptr});
 
 		bidirectional_test(json, values);
 	}

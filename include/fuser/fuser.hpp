@@ -17,6 +17,7 @@
 #include <cstdint>
 #include <limits>
 #include <string>
+#include <memory>
 #include <type_traits>
 
 namespace fuser {
@@ -203,6 +204,44 @@ template <>
 struct serializer<void const*> : pointer_serializer<void const*> {};
 template <>
 struct deserializer<void const*> : pointer_deserializer<void const*> {};
+
+///////////////////////////////////////////////////////////////////////////////
+
+/*
+ * implementation for unique pointers: if null output null, else forward implementation to T
+ * shared_ptr intentionally not implemented, because there can be cycles or duplicated data
+ */
+template <typename T>
+struct unique_pointer_serializer
+{
+	static nlohmann::json serialize(T const& val)
+	{
+		if (val)
+			return serializer<typename T::element_type>::serialize(*val);
+		else
+			return nullptr;
+	}
+};
+
+template <typename T>
+struct unique_pointer_deserializer
+{
+	static T deserialize(nlohmann::json const& json)
+	{
+		using element_type = typename T::element_type;
+
+		if (json.is_null())
+			return nullptr;
+		else
+			// new instead of std::make_unique to lower requirements to C++11
+			return T(new element_type(deserializer<element_type>::deserialize(json)));
+	}
+};
+
+template <typename T>
+struct serializer<std::unique_ptr<T>> : unique_pointer_serializer<std::unique_ptr<T>> {};
+template <typename T>
+struct deserializer<std::unique_ptr<T>> : unique_pointer_deserializer<std::unique_ptr<T>> {};
 
 ///////////////////////////////////////////////////////////////////////////////
 
