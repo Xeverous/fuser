@@ -1,0 +1,11 @@
+@PACKAGE_INIT@
+
+if(NOT TARGET nlohmann_json::nlohmann_json)
+	find_dependency(nlohmann_json)
+endif()
+if(NOT TARGET Boost::boost)
+	find_dependency(Boost)
+endif()
+
+include("${CMAKE_CURRENT_LIST_DIR}/@TARGETS_EXPORT_NAME@.cmake")
+check_required_components("@PROJECT_NAME@")
