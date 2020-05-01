@@ -497,7 +497,7 @@ struct array_container_deserializer
 
 		Container result;
 
-		for (std::size_t i = 0; i < result.size(); i++) {
+		for (std::size_t i = 0; i < result.size(); ++i) {
 			using value_type = typename Container::value_type;
 			result[i] = deserializer<value_type>::deserialize(json[i]);
 		}
