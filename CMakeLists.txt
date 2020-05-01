@@ -12,12 +12,24 @@ project(fuser
 # options for customizing the build
 
 option(FUSER_ONLY_CXX_11 "build fuser library with C++11 only" OFF)
-option(FUSER_BUILD_TESTS "build fuser library tests" ON)
+option(FUSER_BUILD_TESTS "build fuser library tests" OFF)
+option(FUSER_USE_EXTERNAL_JSON
+"ON: use find_package() to locate nlohmann/json; \
+OFF: use add_subdirectory() with FUSER_NLOHMANN_JSON_ROOT" ON)
 
 ##############################################################################
 # dependencies and target definitions
 
-find_package(nlohmann_json 3.0.0 REQUIRED)
+if(FUSER_USE_EXTERNAL_JSON)
+	find_package(nlohmann_json 3.0.0 REQUIRED)
+else()
+	if(NOT ${FUSER_NLOHMANN_JSON_ROOT})
+		message(FATAL_ERROR "non-external JSON enabled but FUSER_NLOHMANN_JSON_ROOT was not set")
+	endif()
+
+	set(JSON_BuildTests OFF CACHE INTERNAL "")
+	add_subdirectory(${FUSER_NLOHMANN_JSON_ROOT} ${CMAKE_BINARY_DIR}/json)
+endif()
 
 # 1.56 introduced typeindex library, used in tests
 find_package(Boost 1.56 REQUIRED)
