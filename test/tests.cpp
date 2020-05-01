@@ -11,6 +11,10 @@
 #include <memory>
 #include <string_view>
 
+#if __cplusplus >= 201703L && !defined(FUSER_ONLY_CXX_11)
+#include <optional>
+#endif
+
 namespace ut = boost::unit_test;
 namespace tt = boost::test_tools;
 
@@ -314,5 +318,14 @@ BOOST_AUTO_TEST_SUITE(fuser_suite)
 
 		bidirectional_test(json, values);
 	}
+
+#if __cplusplus >= 201703L && !defined(FUSER_ONLY_CXX_11)
+	BOOST_AUTO_TEST_CASE(optional)
+	{
+		nlohmann::json const json = { 0, nullptr, 1, 2, 3, nullptr };
+		std::deque<std::optional<int>> const values = { {0}, {std::nullopt}, {1}, {2}, {3}, {std::nullopt} };
+		bidirectional_test(json, values);
+	}
+#endif
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -20,6 +20,10 @@
 #include <memory>
 #include <type_traits>
 
+#if __cplusplus >= 201703L && !defined(FUSER_ONLY_CXX_11)
+#include <optional>
+#endif
+
 namespace fuser {
 
 template <typename TypeLackingImplementation>
@@ -242,6 +246,43 @@ template <typename T>
 struct serializer<std::unique_ptr<T>> : unique_pointer_serializer<std::unique_ptr<T>> {};
 template <typename T>
 struct deserializer<std::unique_ptr<T>> : unique_pointer_deserializer<std::unique_ptr<T>> {};
+
+///////////////////////////////////////////////////////////////////////////////
+
+#if __cplusplus >= 201703L && !defined(FUSER_ONLY_CXX_11)
+/*
+ * implementation for std::optional
+ */
+template <typename T>
+struct optional_serializer
+{
+	static nlohmann::json serialize(T const& val)
+	{
+		if (val)
+			return serializer<typename T::value_type>::serialize(*val);
+		else
+			return nullptr;
+	}
+};
+
+template <typename T>
+struct optional_deserializer
+{
+	static T deserialize(nlohmann::json const& json)
+	{
+		if (json.is_null())
+			return std::nullopt;
+		else
+			return T(deserializer<typename T::value_type>::deserialize(json));
+	}
+};
+
+template <typename T>
+struct serializer<std::optional<T>> : optional_serializer<std::optional<T>> {};
+template <typename T>
+struct deserializer<std::optional<T>> : optional_deserializer<std::optional<T>> {};
+
+#endif
 
 ///////////////////////////////////////////////////////////////////////////////
 

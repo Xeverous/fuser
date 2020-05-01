@@ -11,6 +11,7 @@ project(fuser
 ##############################################################################
 # options for customizing the build
 
+option(FUSER_ONLY_CXX_11 "build fuser library with C++11 only" OFF)
 option(FUSER_BUILD_TESTS "build fuser library tests" ON)
 
 ##############################################################################
@@ -31,7 +32,13 @@ target_include_directories(fuser INTERFACE
 	${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
-target_compile_features(fuser INTERFACE cxx_std_11)
+if(FUSER_ONLY_CXX_11)
+	message(STATUS "fuser standard: C++11")
+	target_compile_features(fuser INTERFACE cxx_std_11)
+else()
+	message(STATUS "fuser standard: C++17")
+	target_compile_features(fuser INTERFACE cxx_std_17)
+endif()
 
 target_link_libraries(fuser INTERFACE
 	nlohmann_json::nlohmann_json
