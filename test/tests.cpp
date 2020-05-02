@@ -5,6 +5,8 @@
 #include <array>
 #include <vector>
 #include <deque>
+#include <map>
+#include <unordered_map>
 #include <initializer_list>
 #include <limits>
 #include <string>
@@ -38,7 +40,7 @@ bool operator!=(integer_struct lhs, integer_struct rhs)
 	return !(lhs == rhs);
 }
 
-enum class sample_enum
+enum class sample_enum : std::size_t
 {
 	unknown, foo, bar
 };
@@ -133,6 +135,62 @@ template <typename T, typename... Args>
 std::unique_ptr<T> make_unique(Args&&... args)
 {
 	return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
+}
+
+namespace std
+{
+	template <>
+	struct less<sample_enum>
+	{
+		constexpr bool operator()(sample_enum lhs, sample_enum rhs) const
+		{
+			return static_cast<std::size_t>(lhs) < static_cast<std::size_t>(rhs);
+		}
+	};
+}
+
+struct struct_with_map
+{
+	std::map<sample_enum, int> m;
+};
+BOOST_FUSION_ADAPT_STRUCT(struct_with_map, m)
+
+bool operator==(struct_with_map const& lhs, struct_with_map const& rhs)
+{
+	return lhs.m == rhs.m;
+}
+
+bool operator!=(struct_with_map const& lhs, struct_with_map const& rhs)
+{
+	return !(lhs == rhs);
+}
+
+namespace std
+{
+	template <>
+	struct hash<sample_enum>
+	{
+		std::size_t operator()(sample_enum e) const noexcept
+		{
+			return static_cast<std::size_t>(e);
+		}
+	};
+}
+
+struct struct_with_unordered_map
+{
+	std::unordered_map<sample_enum, int> m;
+};
+BOOST_FUSION_ADAPT_STRUCT(struct_with_unordered_map, m)
+
+bool operator==(struct_with_unordered_map const& lhs, struct_with_unordered_map const& rhs)
+{
+	return lhs.m == rhs.m;
+}
+
+bool operator!=(struct_with_unordered_map const& lhs, struct_with_unordered_map const& rhs)
+{
+	return !(lhs == rhs);
 }
 
 namespace {
@@ -327,5 +385,33 @@ BOOST_AUTO_TEST_SUITE(fuser_suite)
 		bidirectional_test(json, values);
 	}
 #endif
+
+	BOOST_AUTO_TEST_CASE(map)
+	{
+		nlohmann::json const json = {
+			{"m", {
+				{"foo", 123},
+				{"bar", 456}
+			}}
+		};
+		struct_with_map const s = {
+			{{sample_enum::foo, 123}, {sample_enum::bar, 456}}
+		};
+		bidirectional_test(json, s);
+	}
+
+	BOOST_AUTO_TEST_CASE(unordered_map)
+	{
+		nlohmann::json const json = {
+			{"m", {
+				{"foo", 123},
+				{"bar", 456}
+			}}
+		};
+		struct_with_unordered_map const s = {
+			{{sample_enum::foo, 123}, {sample_enum::bar, 456}}
+		};
+		bidirectional_test(json, s);
+	}
 
 BOOST_AUTO_TEST_SUITE_END()

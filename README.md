@@ -7,7 +7,9 @@
 The library has a predefined set of (de)serializers for common types:
 
 - `bool`
-- all standard integer and floating-point numeric types (checks if the value fits into the destination type)
+- all standard integer (`std::int*_t`, `std::uint*_t`) and floating-point (`float`, `double`, `long double`) numeric types (checks if the value fits into the destination type)
+- `char` is not explicitly implemented, but it will very likely fall into one of fixed-width integer types
+- `char8_t`, `char16_t` and `char32_t` are not implemented
 - `void*` and `void const*` (converts to `std::uintptr_t`)
 - `std::string`
 - `std::array<T, N>` (checks if array size matches)
@@ -15,8 +17,12 @@ The library has a predefined set of (de)serializers for common types:
 - `std::deque<T>`
 - `std::unique_ptr<T>` (outputs `null` when there is no value)
 - `std::optional<T>` (outputs `null` when there is no value)
+- `std::map<K, V, C>`
+- `std::unordered_map<K, V, H, E>`
 
 Additionally, it supports (de)serializers for structures which are valid boost fusion sequences.
+
+Note that the above list is exactly how template specializations are implemented. The allocator template parameter is intentionally ommited because the current implementation has no guuarantees for stateful allocators. You can always define your (partial) specializations that reuse the existing serializers - just check how they are implemented.
 
 If a type has no (de)serializer, the library will gracefully fail on a `static_assert`.
 

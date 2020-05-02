@@ -18,6 +18,8 @@
 #include <limits>
 #include <string>
 #include <memory>
+#include <map>
+#include <unordered_map>
 #include <type_traits>
 
 #if __cplusplus >= 201703L && !defined(FUSER_ONLY_CXX_11)
@@ -283,6 +285,73 @@ template <typename T>
 struct deserializer<std::optional<T>> : optional_deserializer<std::optional<T>> {};
 
 #endif
+
+///////////////////////////////////////////////////////////////////////////////
+
+/*
+ * map implementation: very similar to fusion, but check if the key serializes to a string
+ */
+template <typename Map>
+struct map_serializer
+{
+	static nlohmann::json serialize(Map const& map)
+	{
+		nlohmann::json json = nlohmann::json::object();
+
+		for (auto const& p : map) {
+			using key_type = typename Map::key_type;
+			using mapped_type = typename Map::mapped_type;
+
+			key_type const& key = p.first;
+			mapped_type const& val = p.second;
+
+			nlohmann::json key_serialized = serializer<key_type>::serialize(key);
+			if (!key_serialized.is_string())
+				throw std::logic_error("Map key serializer must output a JSON of type string.");
+
+			using string_ref = nlohmann::json::string_t&;
+			json[std::move(key_serialized.get_ref<string_ref>())] = serializer<mapped_type>::serialize(val);
+		}
+
+		return json;
+	}
+};
+
+template <typename Map>
+struct map_deserializer
+{
+	static Map deserialize(nlohmann::json const& json)
+	{
+		if (!json.is_object()) {
+			throw std::invalid_argument("Map deserializer must get a JSON of type object.");
+		}
+
+		Map map;
+
+		for (auto const& obj : json.items()) {
+			using key_type = typename Map::key_type;
+			using mapped_type = typename Map::mapped_type;
+
+			map[deserializer<key_type>::deserialize(obj.key())] = deserializer<mapped_type>::deserialize(obj.value());
+		}
+
+		return map;
+	}
+};
+
+/*
+ * allocator type intentionally ommited - the current implementation
+ * does not provide any guuarantees for stateful allocators
+ */
+template <typename K, typename V, typename C>
+struct serializer<std::map<K, V, C>> : map_serializer<std::map<K, V, C>> {};
+template <typename K, typename V, typename C>
+struct deserializer<std::map<K, V, C>> : map_deserializer<std::map<K, V, C>> {};
+
+template <typename K, typename V, typename H, typename E>
+struct serializer<std::unordered_map<K, V, H, E>> : map_serializer<std::unordered_map<K, V, H, E>> {};
+template <typename K, typename V, typename H, typename E>
+struct deserializer<std::unordered_map<K, V, H, E>> : map_deserializer<std::unordered_map<K, V, H, E>> {};
 
 ///////////////////////////////////////////////////////////////////////////////
 
