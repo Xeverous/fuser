@@ -79,12 +79,13 @@ struct fuser::deserializer<sample_enum>
 
 struct multi_type_struct
 {
+	std::nullptr_t null;
 	bool b;
 	std::string str;
 	std::vector<sample_enum> vec;
 	std::deque<integer_struct> deq;
 };
-BOOST_FUSION_ADAPT_STRUCT(multi_type_struct, b, str, vec, deq)
+BOOST_FUSION_ADAPT_STRUCT(multi_type_struct, null, b, str, vec, deq)
 
 bool operator==(multi_type_struct const& lhs, multi_type_struct const& rhs)
 {
@@ -303,6 +304,7 @@ BOOST_AUTO_TEST_SUITE(fuser_suite)
 	{
 		nlohmann::json const json = {
 			{
+				{"null", nullptr},
 				{"b", true},
 				{"str", "abc"},
 				{"vec", {"foo", "bar", "(unknown)"}},
@@ -313,6 +315,7 @@ BOOST_AUTO_TEST_SUITE(fuser_suite)
 				}},
 			},
 			{
+				{"null", nullptr},
 				{"b", false},
 				{"str", "xyz"},
 				{"vec", {"bar", "(unknown)", "foo"}},
@@ -327,6 +330,7 @@ BOOST_AUTO_TEST_SUITE(fuser_suite)
 
 		std::array<multi_type_struct, 2> const values = {
 			multi_type_struct{
+				nullptr,
 				true,
 				"abc",
 				{ sample_enum::foo, sample_enum::bar, sample_enum::unknown },
@@ -337,6 +341,7 @@ BOOST_AUTO_TEST_SUITE(fuser_suite)
 				}
 			},
 			multi_type_struct{
+				nullptr,
 				false,
 				"xyz",
 				{ sample_enum::bar, sample_enum::unknown, sample_enum::foo },

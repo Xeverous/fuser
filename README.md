@@ -6,6 +6,7 @@
 
 The library has a predefined set of (de)serializers for common types:
 
+- `std::nullptr_t`
 - `bool`
 - all standard integer (`std::int*_t`, `std::uint*_t`) and floating-point (`float`, `double`, `long double`) numeric types (checks if the value fits into the destination type)
 - `char` is not explicitly implemented, but it will very likely fall into one of fixed-width integer types

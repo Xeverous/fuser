@@ -102,6 +102,33 @@ struct deserializer<std::string> : basic_deserializer<std::string> {};
 
 ///////////////////////////////////////////////////////////////////////////////
 
+struct null_serializer
+{
+	static nlohmann::json serialize(std::nullptr_t)
+	{
+		return nullptr;
+	}
+};
+
+struct null_deserializer
+{
+	static std::nullptr_t deserialize(nlohmann::json const& json)
+	{
+		if (!json.is_null()) {
+			throw std::invalid_argument("Null serializer should only get JSONs of type null");
+		}
+
+		return nullptr;
+	}
+};
+
+template <>
+struct serializer<std::nullptr_t> : null_serializer {};
+template <>
+struct deserializer<std::nullptr_t> : null_deserializer {};
+
+///////////////////////////////////////////////////////////////////////////////
+
 /*
  * implementation for numeric types:
  * basic implementation but checks if the value fits into the target type
